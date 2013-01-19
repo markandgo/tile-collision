@@ -178,30 +178,30 @@ function e:move(dx,dy)
 		return
 	end
 	
-	local tw,th   = self.grid.tileWidth,self.grid.tileHeight
+	local mw,mh         = self.map.tileWidth,self.map.tileHeight
+	local finalx,finaly = self.x+dx,self.y+dy
 	local gx,gy,gx2,gy2,x,oldx,y,oldy,newx,newy,gd,least
 	-----------------------------------------------------------
 	-- x direction collision detection
 	gx,gy,gx2,gy2 = self:getTileRange()
-	x,oldx        = self.x,self.x
 	
 	local gd,least
 	if dx >= 0 then
 		least   = min
-		gx,gx2  = gx2,ceil((x+self.w+dx)/tw)
+		gx,gx2  = gx2,ceil((self.x+self.w+dx)/mw)-1
 		gd      = 1
 	elseif dx < 0 then
 		least   = max
-		gx2     = floor((x+dx)/tw)+1
+		gx2     = floor((self.x+dx)/mw)
 		gd      = -1
 	end
 		
 	-- continuous collision detection by moving cell by cell
 	for tx = gx,gx2,gd do
 		if dx >= 0 then 
-			self.x = least(tx*tw-self.w,oldx+dx) 
+			self.x = least((tx+1)*mw-self.w,finalx) 
 		else 
-			self.x = least((tx-1)*tw,oldx+dx) 
+			self.x = least(tx*mw,finalx) 
 		end
 		newx  = self.x
 		self:resolveX()
@@ -218,23 +218,22 @@ function e:move(dx,dy)
 	-----------------------------------------------------------
 	-- y direction collision detection
 	gx,gy,gx2,gy2 = self:getTileRange()
-	y,oldy        = self.y,self.y
 	
 	if dy >= 0 then
 		least   = min
-		gy,gy2  = gy2,ceil((y+self.h+dy)/th)
+		gy,gy2  = gy2,ceil((self.y+self.h+dy)/mh)-1
 		gd      = 1
 	elseif dy < 0 then
 		least   = max
-		gy2     = floor((y+dy)/th)+1
+		gy2     = floor((self.y+dy)/mh)
 		gd      = -1
 	end
 		
 	for ty = gy,gy2,gd do
 		if dy >= 0 then 
-			self.y = least(ty*th-self.h,oldy+dy) 
+			self.y = least((ty+1)*mh-self.h,finaly)
 		else 
-			self.y = least((ty-1)*th,oldy+dy) 
+			self.y = least(ty*mh,finaly) 
 		end
 		newy  = self.y
 		self:resolveY()
