@@ -47,7 +47,7 @@ end
 -----------------------------------------------------------
 -- custom collision callback
 -- return true if tile/slope is collidable
-function e:isResolvable(side,gx,gy,tile)
+function e:isResolvable(side,tile,gx,gy)
 end
 -----------------------------------------------------------
 function e:rightSideResolve()
