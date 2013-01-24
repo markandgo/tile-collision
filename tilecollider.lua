@@ -50,8 +50,7 @@ end
 function e:isResolvable(side,gx,gy,tile)
 end
 -----------------------------------------------------------
-function e:rightSideResolve()
-	local gx,gy,gx2,gy2 = self:getTileRange()
+function e:rightSideResolve(gx,gy,gx2,gy2)
 	local tw,th   = self.grid.tileWidth,self.grid.tileHeight
 	local newx    = self.x
 	local tx,tile = gx2
@@ -81,7 +80,7 @@ function e:rightSideResolve()
 	self.x = newx
 end
 -----------------------------------------------------------
-function e:leftSideResolve()
+function e:leftSideResolve(gx,gy,gx2,gy2)
 	local gx,gy,gx2,gy2 = self:getTileRange()
 	local tw,th   = self.grid.tileWidth,self.grid.tileHeight
 	local newx    = self.x
@@ -106,7 +105,7 @@ function e:leftSideResolve()
 	self.x = newx
 end
 -----------------------------------------------------------
-function e:bottomSideResolve()
+function e:bottomSideResolve(gx,gy,gx2,gy2)
 	local gx,gy,gx2,gy2 = self:getTileRange()
 	local tw,th   = self.grid.tileWidth,self.grid.tileHeight
 	local newy    = self.y
@@ -131,7 +130,7 @@ function e:bottomSideResolve()
 	self.y = newy
 end
 -----------------------------------------------------------
-function e:topSideResolve()
+function e:topSideResolve(gx,gy,gx2,gy2)
 	local gx,gy,gx2,gy2 = self:getTileRange()
 	local tw,th   = self.grid.tileWidth,self.grid.tileHeight
 	local newy    = self.y
@@ -157,13 +156,17 @@ function e:topSideResolve()
 end
 -----------------------------------------------------------
 function e:resolveX()
-	self:rightSideResolve()
-	self:leftSideResolve()
+	local oldx          = self.x
+	local gx,gy,gx2,gy2 = self:getTileRange()
+	self:rightSideResolve(gx,gy,gx2,gy2)
+	if oldx == self.x then self:leftSideResolve(gx,gy,gx2,gy2) end
 end
 -----------------------------------------------------------
 function e:resolveY()
-	self:bottomSideResolve()
-	self:topSideResolve()
+	local oldy          = self.y
+	local gx,gy,gx2,gy2 = self:getTileRange()
+	self:bottomSideResolve(gx,gy,gx2,gy2)
+	if oldy == self.y then self:topSideResolve(gx,gy,gx2,gy2) end
 end
 -----------------------------------------------------------
 -- PUBLIC FUNCTIONS
