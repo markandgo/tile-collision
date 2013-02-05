@@ -51,9 +51,6 @@ tileset =
 }
 -------------------------------------------------------------------------------
 p1 = entity.new(64,64,32,32,grid,tileset)
--- class properties
--- p1.isBullet
--- p1.isActive
 
 -- custom collision callback
 function p1:isResolvable(side,tile,gx,gy)
@@ -94,11 +91,10 @@ function love.update(dt)
 		dy = 0
 	end
 	
-	prevLeftGX,_,prevRightGX = p1:getTileRange()
+	prevLeftGX,_,prevRightGX = p1:getTileRange(p1.x,p1.y,p1.w,p1.h)
 	
 	-- move and resolve collisions
-	-- p1:move(dx,dy)
-	p1:moveTo(p1.x+dx,p1.y+dy)
+	p1:move(dx,dy)
 end
 -------------------------------------------------------------------------------
 function love.draw()
