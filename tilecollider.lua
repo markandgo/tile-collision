@@ -1,4 +1,4 @@
--- Tile Collider 2.0
+-- Tile Collider 2.1
 local floor = math.floor
 local ceil  = math.ceil
 local max   = math.max
@@ -52,7 +52,7 @@ function e:rightResolve(x,y,w,h)
 	local gx,gy,gx2,gy2 = self:getTileRange(x,y,w,h)
 	local tw,th   = self.grid.tileWidth,self.grid.tileHeight
 	local newx    = self.x
-	local preSolveX,preSolveY = self.x,self.y
+	local oldx    = newx
 	local tile
 	for tx = gx,gx2 do
 		for ty = gy,gy2 do 
@@ -60,10 +60,13 @@ function e:rightResolve(x,y,w,h)
 			if tile then
 				if tile.horizontalHeightMap then
 					local hmap = tile.horizontalHeightMap
-					local ti = gy ~= ty and 1 or floor(preSolveY-(ty-1)*th)+1
-					local bi = gy2 ~= ty and th or ceil(preSolveY+self.h-(ty-1)*th)
-					local minx = min(preSolveX,tx*tw-self.w-hmap[ti],tx*tw-self.w-hmap[bi])
-					if minx ~= preSolveX and self:isResolvable('right',tile,tx,ty) then
+					-- index height map with 2 points
+					local ti   = floor(y-(ty-1)*th)+1
+					local bi   = ceil(y+h-(ty-1)*th)
+					ti         = ti > th and th or ti < 1 and 1 or ti
+					bi         = bi > th and th or bi < 1 and 1 or bi
+					local minx = min(oldx,tx*tw-self.w-hmap[ti],tx*tw-self.w-hmap[bi])
+					if minx ~= oldx and self:isResolvable('right',tile,tx,ty) then
 						newx = min(minx,newx)
 					end
 				elseif self:isResolvable('right',tile,tx,ty) then
@@ -79,7 +82,7 @@ function e:leftResolve(x,y,w,h)
 	local gx,gy,gx2,gy2 = self:getTileRange(x,y,w,h)
 	local tw,th   = self.grid.tileWidth,self.grid.tileHeight
 	local newx    = self.x
-	local preSolveX,preSolveY = self.x,self.y
+	local oldx    = newx
 	local tile
 	for tx = gx,gx2 do
 		for ty = gy,gy2 do 
@@ -87,10 +90,12 @@ function e:leftResolve(x,y,w,h)
 			if tile then
 				if tile.horizontalHeightMap then
 					local hmap = tile.horizontalHeightMap
-					local ti   = gy ~= ty and 1 or floor(preSolveY-(ty-1)*th)+1
-					local bi   = gy2 ~= ty and th or ceil(preSolveY+self.h-(ty-1)*th)
-					local maxx = max(preSolveX,(tx-1)*tw+hmap[ti],(tx-1)*tw+hmap[bi])
-					if maxx ~= preSolveX and self:isResolvable('left',tile,tx,ty) then
+					local ti   = floor(y-(ty-1)*th)+1
+					local bi   = ceil(y+h-(ty-1)*th)
+					ti         = ti > th and th or ti < 1 and 1 or ti
+					bi         = bi > th and th or bi < 1 and 1 or bi
+					local maxx = max(oldx,(tx-1)*tw+hmap[ti],(tx-1)*tw+hmap[bi])
+					if maxx ~= oldx and self:isResolvable('left',tile,tx,ty) then
 						newx = max(maxx,newx)
 					end
 				elseif self:isResolvable('left',tile,tx,ty) then
@@ -106,7 +111,7 @@ function e:bottomResolve(x,y,w,h)
 	local gx,gy,gx2,gy2 = self:getTileRange(x,y,w,h)
 	local tw,th   = self.grid.tileWidth,self.grid.tileHeight
 	local newy    = self.y
-	local preSolveX,preSolveY = self.x,self.y
+	local oldy    = newy
 	local tile
 	for ty = gy,gy2 do
 		for tx = gx,gx2 do
@@ -114,10 +119,12 @@ function e:bottomResolve(x,y,w,h)
 			if tile then
 				if tile.verticalHeightMap then
 					local hmap = tile.verticalHeightMap
-					local li   = gx ~= tx and 1 or floor(preSolveX-(tx-1)*tw)+1
-					local ri   = gx2 ~= tx and tw or ceil((preSolveX+self.w)-(tx-1)*tw)
-					local miny = min(preSolveY,ty*th-self.h-hmap[li],ty*th-self.h-hmap[ri])
-					if miny ~= preSolveY and self:isResolvable('bottom',tile,tx,ty) then
+					local li   = floor(x-(tx-1)*tw)+1
+					local ri   = ceil((x+w)-(tx-1)*tw)
+					li         = li > tw and tw or li < 1 and 1 or li
+					ri         = ri > tw and tw or ri < 1 and 1 or ri
+					local miny = min(oldy,ty*th-self.h-hmap[li],ty*th-self.h-hmap[ri])
+					if miny ~= oldy and self:isResolvable('bottom',tile,tx,ty) then
 						newy = min(miny,newy)
 					end
 				elseif self:isResolvable('bottom',tile,tx,ty) then
@@ -133,7 +140,7 @@ function e:topResolve(x,y,w,h)
 	local gx,gy,gx2,gy2 = self:getTileRange(x,y,w,h)
 	local tw,th   = self.grid.tileWidth,self.grid.tileHeight
 	local newy    = self.y
-	local preSolveX,preSolveY = self.x,self.y
+	local oldy    = newy
 	local tile
 	for ty = gy,gy2 do
 		for tx = gx,gx2 do
@@ -141,10 +148,12 @@ function e:topResolve(x,y,w,h)
 			if tile then
 				if tile.verticalHeightMap then
 					local hmap = tile.verticalHeightMap
-					local li   = gx ~= tx and 1 or floor(preSolveX-(tx-1)*tw)+1
-					local ri   = gx2 ~= tx and tw or ceil((preSolveX+self.w)-(tx-1)*tw)
-					local maxy = max(preSolveY,(ty-1)*th+hmap[li],(ty-1)*th+hmap[ri])
-					if maxy ~= preSolveY and self:isResolvable('top',tile,tx,ty) then
+					local li   = floor(x-(tx-1)*tw)+1
+					local ri   = ceil((x+w)-(tx-1)*tw)
+					li         = li > tw and tw or li < 1 and 1 or li
+					ri         = ri > tw and tw or ri < 1 and 1 or ri
+					local maxy = max(oldy,(ty-1)*th+hmap[li],(ty-1)*th+hmap[ri])
+					if maxy ~= oldy and self:isResolvable('top',tile,tx,ty) then
 						newy = max(maxy,newy)
 					end
 				elseif self:isResolvable('top',tile,tx,ty) then
@@ -157,17 +166,17 @@ function e:topResolve(x,y,w,h)
 end
 -----------------------------------------------------------
 function e:resolveX()
-	local oldx = self.x
-	self:rightResolve(self.x+self.w/2,self.y,self.w/2,self.h)
-	if oldx ~= self.x then return end
-	self:leftResolve(self.x,self.y,self.w/2,self.h)
+	local x,y,w,h = self.x,self.y,self.w,self.h
+	self:rightResolve(x+w/2,y,w/2,h)
+	if self.x ~= x then return end
+	self:leftResolve(x,y,w/2,h)
 end
 -----------------------------------------------------------
 function e:resolveY()
-	local oldy = self.y
-	self:bottomResolve(self.x,self.y+self.h/2,self.w,self.h/2)
-	if oldy ~= self.y then return end
-	self:topResolve(self.x,self.y,self.w,self.h/2)
+	local x,y,w,h = self.x,self.y,self.w,self.h
+	self:bottomResolve(x,y+h/2,w,h/2)
+	if self.y ~= y then return end
+	self:topResolve(x,y,w,h/2)
 end
 -----------------------------------------------------------
 -- PUBLIC FUNCTIONS

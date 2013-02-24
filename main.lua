@@ -9,10 +9,10 @@ grid =
 		{2,2,2,2,2,2,2,2, 2 ,2,2,2},
 		{2,1,1,1,1,1,1,1,'g',1,1,2},
 		{2,1,1,1,1,1,1,1,'g',1,1,2},
-		{2,1,1,1,1,1,1,1,'g',1,1,2},
+		{2,1,1,1,1,4,2,1,'g',1,1,2},
 		{2,1,1,1,1,2,2,2, 2 ,1,1,2},
 		{2,1,1,1,1,1,1,1,'b',1,1,2},
-		{2,1,1,1,1,1,1,1,'b',1,1,2},
+		{2,1,3,2,1,1,1,1,'b',1,1,2},
 		{2,2,2,2,2,2,2,2, 2 ,2,2,2},
 	}
 
@@ -39,14 +39,20 @@ tileset =
 		color = {0,0,255},
 		type  = 4,
 	},
-	-- how a slope tile would look like:
-	slope =
+	-- vertical height map tile
+	[3] =
 	{
 		color = {0,255,255},
-		type  = 5,
-		-- height arrays
-		verticalHeightMap   = nil,
-		horizontalHeightMap = nil,
+		type  = 'vert',
+		-- height table
+		verticalHeightMap   = (function() local t = {} for i = 1,64 do t[i] = i end return t end)(),
+	},
+	-- horizontal height map tile
+	[4] =
+	{
+		color = {255,100,0},
+		type  = 'horz',
+		horizontalHeightMap = (function() local t = {} for i = 1,64 do t[i] = i end return t end)(),
 	},
 }
 -------------------------------------------------------------------------------
@@ -57,6 +63,10 @@ function p1:isResolvable(side,tile,gx,gy)
 	local tileType = tile.type
 
 	if tileType == 2 then return true end
+	
+	if tileType == 'vert' and side == 'bottom' then return true end
+	
+	if tileType == 'horz' and side == 'right' then return true end
 	
 	-- one way tile
 	if tileType == 3 then 
@@ -102,9 +112,13 @@ function love.draw()
 	for ty,t in ipairs(grid) do
 		ty = ty-1
 		for tx,tileID in ipairs(t) do
-			tx = tx-1
-			love.graphics.setColor(tileset[tileID].color)
-			love.graphics.rectangle('line',tx*tw,ty*th,tw,th)
+				tx = tx-1
+				love.graphics.setColor(tileset[tileID].color)
+				if tileID == 3 or tileID == 4 then
+					love.graphics.polygon('line',tx*tw,(ty+1)*th,(tx+1)*tw,(ty+1)*th,(tx+1)*tw,(ty*th))
+				else
+					love.graphics.rectangle('line',tx*tw,ty*th,tw,th)
+				end
 		end
 	end
 	p1:draw('fill')
