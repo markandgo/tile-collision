@@ -193,7 +193,7 @@ function e:move(dx,dy)
 	
 	local mw,mh         = self.map.tileWidth,self.map.tileHeight
 	local finalx,finaly = self.x+dx,self.y+dy
-	local gx,gy,gx2,gy2,x,oldx,y,oldy,newx,newy,gd,least
+	local gx,gy,gx2,gy2,newx,newy,gd,least
 	-----------------------------------------------------------
 	-- x direction collision detection
 	gx,gy,gx2,gy2 = self:getTileRange(self.x,self.y,self.w,self.h)
