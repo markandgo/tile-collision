@@ -1,14 +1,11 @@
--- Tile Collider 2.1
+-- Tile Collider 2.2
 local floor = math.floor
 local ceil  = math.ceil
 local max   = math.max
 local min   = math.min
 -----------------------------------------------------------
 -- class
-local e   = 
-	{
-	class    = 'collider',
-	}
+local e   = {}
 e.__index = e
 e.new     = function(x,y,w,h,grid,tileset)
 	local t =
@@ -76,6 +73,7 @@ function e:rightResolve(x,y,w,h)
 		end
 	end
 	self.x = newx
+	return self
 end
 -----------------------------------------------------------
 function e:leftResolve(x,y,w,h)
@@ -105,6 +103,7 @@ function e:leftResolve(x,y,w,h)
 		end
 	end
 	self.x = newx
+	return self
 end
 -----------------------------------------------------------
 function e:bottomResolve(x,y,w,h)
@@ -134,6 +133,7 @@ function e:bottomResolve(x,y,w,h)
 		end
 	end
 	self.y = newy
+	return self
 end
 -----------------------------------------------------------
 function e:topResolve(x,y,w,h)
@@ -163,6 +163,7 @@ function e:topResolve(x,y,w,h)
 		end
 	end
 	self.y = newy
+	return self
 end
 -----------------------------------------------------------
 function e:resolveX()
@@ -170,6 +171,7 @@ function e:resolveX()
 	self:rightResolve(x+w/2,y,w/2,h)
 	if self.x ~= x then return end
 	self:leftResolve(x,y,w/2,h)
+	return self
 end
 -----------------------------------------------------------
 function e:resolveY()
@@ -177,18 +179,19 @@ function e:resolveY()
 	self:bottomResolve(x,y+h/2,w,h/2)
 	if self.y ~= y then return end
 	self:topResolve(x,y,w,h/2)
+	return self
 end
 -----------------------------------------------------------
 -- PUBLIC FUNCTIONS
 -----------------------------------------------------------
 function e:move(dx,dy)
-	if not self.isActive then self.x,self.y = self.x+dx,self.y+dy return end
+	if not self.isActive then self.x,self.y = self.x+dx,self.y+dy return self end
 	if not self.isBullet then
 		self.x = self.x+dx
 		self:resolveX()
 		self.y = self.y+dy
 		self:resolveY()
-		return
+		return self
 	end
 	
 	local mw,mh         = self.map.tileWidth,self.map.tileHeight
@@ -245,14 +248,53 @@ function e:move(dx,dy)
 		if self.y ~= newy then break end
 		self:resolveX()
 	end	
+	return self
 end
 -----------------------------------------------------------
 function e:moveTo(x,y)
-	self:move(x-self.x,y-self.y)
+	return self:move(x-self.x,y-self.y)
+end
+-----------------------------------------------------------
+function e:setSize(w,h)
+	self.w = w; self.h = h
+	return self
+end
+-----------------------------------------------------------
+function e:unpack()
+	return self.x,self.y,self.w,self.h
+end
+-----------------------------------------------------------
+function e:setGrid(grid)
+	self.grid = grid
+	return self
+end
+-----------------------------------------------------------
+function e:setTileset(tileset)
+	self.tileset = tileset
+	return self
+end
+-----------------------------------------------------------
+function e:setActive(bool)
+	self.isActive = bool
+	return self
+end
+-----------------------------------------------------------
+function e:setBullet(bool)
+	self.isBullet = bool
+	return self
+end	
+-----------------------------------------------------------
+function e:isActive()
+	return self.isActive
+end
+-----------------------------------------------------------
+function e:isBullet()
+	return self.isBullet
 end
 -----------------------------------------------------------
 function e:draw(mode)
 	love.graphics.rectangle(mode,self.x,self.y,self.w,self.h)
+	return self
 end
 -----------------------------------------------------------
 return e
