@@ -1,300 +1,176 @@
--- Tile Collider 2.2
+--[[
+Tile Collider 3.0
+
+Copyright (c) 2013 Minh Ngo
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+--]]
 local floor = math.floor
 local ceil  = math.ceil
 local max   = math.max
 local min   = math.min
+
+local t   = setmetatable({startzero = nil},{__call = function(self,...) return self.new(...) end})
+t.__index = t
+
 -----------------------------------------------------------
--- class
-local e   = {}
-e.__index = e
-e.new     = function(x,y,w,h,grid,tileset)
-	local t =
-	{
-		x           = x,
-		y           = y,
-		w           = w,
-		h           = h,
-		grid        = grid,
-		tileset     = tileset,
-		isActive    = true,
-		isBullet    = false,
-	}
-	return setmetatable(t,e)
+-- example collision callback, return true if tile/slope is collidable
+local function isResolvable(side,value,x,y)
 end
 -----------------------------------------------------------
--- PRIVATE FUNCTIONS
------------------------------------------------------------
-local tw,th,gx,gy,gx2,gy2
-function e:getTileRange(x,y,w,h)
-	tw,th   = grid.tileWidth,grid.tileHeight
+local function getTileRange(tw,th,x,y,w,h)
 	gx,gy   = floor(x/tw)+1,floor(y/th)+1
-	gx2,gy2 = ceil( (x+w)/tw ),ceil( (y+h)/th )
+	gx2,gy2 = w == 0 and gx or ceil( (x+w)/tw ), h == 0 and gy or ceil( (y+h)/th )
 	return gx,gy,gx2,gy2
 end
+
+local function getActualCoord(self,tx,ty)
+	if self.startzero then return tx-1,ty-1 else return tx,ty end
+end
+
 -----------------------------------------------------------
-local grid,tileID,tile
-function e:getTile(tx,ty)
-	grid    = self.grid
-	tileID  = grid[ty] and grid[ty][tx] or nil
-	tile    = tileID and self.tileset[tileID] or nil
-	return tile
+function t.new(getTile,tileWidth,tileHeight,isResolvable,heightmaps,startzero)
+	local o = {
+		getTile     = getTile,
+		tileWidth   = tileWidth,
+		tileHeight  = tileHeight,
+		isResolvable= isResolvable,
+		heightmaps  = heightmaps or {},
+		startzero   = startzero,
+	}
+	return setmetatable(o,t)
 end
 -----------------------------------------------------------
--- custom collision callback
--- return true if tile/slope is collidable
-function e:isResolvable(side,tile,gx,gy)
-end
------------------------------------------------------------
-function e:rightResolve(x,y,w,h)
-	local gx,gy,gx2,gy2 = self:getTileRange(x,y,w,h)
-	local tw,th   = self.grid.tileWidth,self.grid.tileHeight
-	local newx    = self.x
-	local oldx    = newx
-	local tile
+function t:rightResolve(x,y,w,h)
+	local tw,th        = self.tileWidth,self.tileHeight
+	local gx,gy,gx2,gy2= getTileRange(tw,th,x,y,w,h)
+	local newx         = x
+	local getTile      = self.getTile
+	local isResolvable = self.isResolvable
+	local heightmaps   = self.heightmaps
 	for tx = gx,gx2 do
 		for ty = gy,gy2 do 
-			tile = self:getTile(tx,ty)
+			local actualtx,actualty = getActualCoord(self,tx,ty)
+			local tile = getTile(actualtx,actualty)
 			if tile then
-				if tile.horizontalHeightMap then
-					local hmap = tile.horizontalHeightMap
-					-- index height map with 2 points
+				local hmap = heightmaps[tile] and heightmaps[tile].horizontal
+				if hmap then
 					local ti   = floor(y-(ty-1)*th)+1
 					local bi   = ceil(y+h-(ty-1)*th)
 					ti         = ti > th and th or ti < 1 and 1 or ti
 					bi         = bi > th and th or bi < 1 and 1 or bi
-					local minx = min(oldx,tx*tw-self.w-hmap[ti],tx*tw-self.w-hmap[bi])
-					if minx ~= oldx and self:isResolvable('right',tile,tx,ty) then
+					local minx = min(x,tx*tw-w-hmap[ti],tx*tw-w-hmap[bi])
+					if minx ~= x and isResolvable('right',tile,actualtx,actualty) then
 						newx = min(minx,newx)
 					end
-				elseif self:isResolvable('right',tile,tx,ty) then
-					newx = min( (tx-1)*tw-self.w , newx )
+				elseif isResolvable('right',tile,actualtx,actualty) then
+					newx = min(newx,(tx-1)*tw-w)
 				end
 			end
 		end
+		if newx ~= x then break end
 	end
-	self.x = newx
-	return self
+	return newx
 end
 -----------------------------------------------------------
-function e:leftResolve(x,y,w,h)
-	local gx,gy,gx2,gy2 = self:getTileRange(x,y,w,h)
-	local tw,th   = self.grid.tileWidth,self.grid.tileHeight
-	local newx    = self.x
-	local oldx    = newx
-	local tile
-	for tx = gx,gx2 do
+function t:leftResolve(x,y,w,h)
+	local tw,th        = self.tileWidth,self.tileHeight
+	local gx,gy,gx2,gy2= getTileRange(tw,th,x,y,w,h)
+	local newx         = x
+	local getTile      = self.getTile
+	local isResolvable = self.isResolvable
+	local heightmaps   = self.heightmaps
+	for tx = gx2,gx,-1 do
 		for ty = gy,gy2 do 
-			tile = self:getTile(tx,ty)
+			local actualtx,actualty = getActualCoord(self,tx,ty)
+			local tile = getTile(actualtx,actualty)
 			if tile then
-				if tile.horizontalHeightMap then
-					local hmap = tile.horizontalHeightMap
+				local hmap = heightmaps[tile] and heightmaps[tile].horizontal
+				if hmap then
 					local ti   = floor(y-(ty-1)*th)+1
 					local bi   = ceil(y+h-(ty-1)*th)
 					ti         = ti > th and th or ti < 1 and 1 or ti
 					bi         = bi > th and th or bi < 1 and 1 or bi
-					local maxx = max(oldx,(tx-1)*tw+hmap[ti],(tx-1)*tw+hmap[bi])
-					if maxx ~= oldx and self:isResolvable('left',tile,tx,ty) then
+					local maxx = max(x,(tx-1)*tw+hmap[ti],(tx-1)*tw+hmap[bi])
+					if maxx ~= x and isResolvable('left',tile,actualtx,actualty) then
 						newx = max(maxx,newx)
 					end
-				elseif self:isResolvable('left',tile,tx,ty) then
-					newx = max( tx*tw , newx)
+				elseif isResolvable('left',tile,actualtx,actualty) then
+					newx = max(newx,tx*tw)
 				end
 			end
 		end
+		if newx ~= x then break end
 	end
-	self.x = newx
-	return self
+	return newx
 end
 -----------------------------------------------------------
-function e:bottomResolve(x,y,w,h)
-	local gx,gy,gx2,gy2 = self:getTileRange(x,y,w,h)
-	local tw,th   = self.grid.tileWidth,self.grid.tileHeight
-	local newy    = self.y
-	local oldy    = newy
-	local tile
+function t:bottomResolve(x,y,w,h)
+	local tw,th        = self.tileWidth,self.tileHeight
+	local gx,gy,gx2,gy2= getTileRange(tw,th,x,y,w,h)
+	local newy         = y
+	local getTile      = self.getTile
+	local isResolvable = self.isResolvable
+	local heightmaps   = self.heightmaps
 	for ty = gy,gy2 do
-		for tx = gx,gx2 do
-			tile = self:getTile(tx,ty)
+		for tx = gx,gx2 do 
+			local actualtx,actualty = getActualCoord(self,tx,ty)
+			local tile = getTile(actualtx,actualty)
 			if tile then
-				if tile.verticalHeightMap then
-					local hmap = tile.verticalHeightMap
+				local hmap = heightmaps[tile] and heightmaps[tile].vertical
+				if hmap then
 					local li   = floor(x-(tx-1)*tw)+1
 					local ri   = ceil((x+w)-(tx-1)*tw)
 					li         = li > tw and tw or li < 1 and 1 or li
 					ri         = ri > tw and tw or ri < 1 and 1 or ri
-					local miny = min(oldy,ty*th-self.h-hmap[li],ty*th-self.h-hmap[ri])
-					if miny ~= oldy and self:isResolvable('bottom',tile,tx,ty) then
+					local miny = min(y,ty*th-h-hmap[li],ty*th-h-hmap[ri])
+					if miny ~= y and isResolvable('bottom',tile,actualtx,actualty) then
 						newy = min(miny,newy)
 					end
-				elseif self:isResolvable('bottom',tile,tx,ty) then
-					newy = min( (ty-1)*th-self.h , newy )
+				elseif isResolvable('bottom',tile,actualtx,actualty) then
+					newy = min(newy,(ty-1)*th-h)
 				end
 			end
 		end
+		if newy ~= y then break end
 	end
-	self.y = newy
-	return self
+	return newy
 end
 -----------------------------------------------------------
-function e:topResolve(x,y,w,h)
-	local gx,gy,gx2,gy2 = self:getTileRange(x,y,w,h)
-	local tw,th   = self.grid.tileWidth,self.grid.tileHeight
-	local newy    = self.y
-	local oldy    = newy
-	local tile
-	for ty = gy,gy2 do
+function t:topResolve(x,y,w,h)
+	local tw,th        = self.tileWidth,self.tileHeight
+	local gx,gy,gx2,gy2= getTileRange(tw,th,x,y,w,h)
+	local newy         = y
+	local getTile      = self.getTile
+	local isResolvable = self.isResolvable
+	local heightmaps   = self.heightmaps
+	for ty = gy2,gy,-1 do
 		for tx = gx,gx2 do
-			tile = self:getTile(tx,ty)
+			local actualtx,actualty = getActualCoord(self,tx,ty) 
+			local tile = getTile(actualtx,actualty)
 			if tile then
-				if tile.verticalHeightMap then
-					local hmap = tile.verticalHeightMap
+				local hmap = heightmaps[tile] and heightmaps[tile].vertical
+				if hmap then
 					local li   = floor(x-(tx-1)*tw)+1
 					local ri   = ceil((x+w)-(tx-1)*tw)
 					li         = li > tw and tw or li < 1 and 1 or li
 					ri         = ri > tw and tw or ri < 1 and 1 or ri
-					local maxy = max(oldy,(ty-1)*th+hmap[li],(ty-1)*th+hmap[ri])
-					if maxy ~= oldy and self:isResolvable('top',tile,tx,ty) then
+					local maxy = max(y,(ty-1)*th+hmap[li],(ty-1)*th+hmap[ri])
+					if maxy ~= y and isResolvable('top',tile,actualtx,actualty) then
 						newy = max(maxy,newy)
 					end
-				elseif self:isResolvable('top',tile,tx,ty) then
-					newy = max( ty*th , newy )
+				elseif isResolvable('top',tile,actualtx,actualty) then
+					newy = max(newy,ty*th)
 				end
 			end
 		end
+		if newy ~= y then break end
 	end
-	self.y = newy
-	return self
+	return newy
 end
 -----------------------------------------------------------
-function e:resolveX()
-	local x,y,w,h = self.x,self.y,self.w,self.h
-	self:rightResolve(x+w/2,y,w/2,h)
-	if self.x ~= x then return end
-	self:leftResolve(x,y,w/2,h)
-	return self
-end
------------------------------------------------------------
-function e:resolveY()
-	local x,y,w,h = self.x,self.y,self.w,self.h
-	self:bottomResolve(x,y+h/2,w,h/2)
-	if self.y ~= y then return end
-	self:topResolve(x,y,w,h/2)
-	return self
-end
------------------------------------------------------------
--- PUBLIC FUNCTIONS
------------------------------------------------------------
-function e:move(dx,dy)
-	if not self.isActive then self.x,self.y = self.x+dx,self.y+dy return self end
-	if not self.isBullet then
-		self.x = self.x+dx
-		self:resolveX()
-		self.y = self.y+dy
-		self:resolveY()
-		return self
-	end
-	
-	local mw,mh         = self.map.tileWidth,self.map.tileHeight
-	local finalx,finaly = self.x+dx,self.y+dy
-	local gx,gy,gx2,gy2,newx,newy,gd,least
-	-----------------------------------------------------------
-	-- x direction collision detection
-	gx,gy,gx2,gy2 = self:getTileRange(self.x,self.y,self.w,self.h)
-	
-	local gd,least
-	if dx >= 0 then
-		least   = min
-		gx,gx2  = gx2,ceil((self.x+self.w+dx)/mw)-1
-		gd      = 1
-	elseif dx < 0 then
-		least   = max
-		gx2     = floor((self.x+dx)/mw)
-		gd      = -1
-	end
-		
-	for tx = gx,gx2,gd do
-		if dx >= 0 then 
-			self.x = least((tx+1)*mw-self.w,finalx) 
-		else 
-			self.x = least(tx*mw,finalx) 
-		end
-		newx  = self.x
-		self:resolveX()
-		if self.x ~= newx then break end
-		self:resolveY()
-	end	
-	-----------------------------------------------------------
-	-- y direction collision detection
-	gx,gy,gx2,gy2 = self:getTileRange(self.x,self.y,self.w,self.h)
-	
-	if dy >= 0 then
-		least   = min
-		gy,gy2  = gy2,ceil((self.y+self.h+dy)/mh)-1
-		gd      = 1
-	elseif dy < 0 then
-		least   = max
-		gy2     = floor((self.y+dy)/mh)
-		gd      = -1
-	end
-		
-	for ty = gy,gy2,gd do
-		if dy >= 0 then 
-			self.y = least((ty+1)*mh-self.h,finaly)
-		else 
-			self.y = least(ty*mh,finaly) 
-		end
-		newy  = self.y
-		self:resolveY()
-		if self.y ~= newy then break end
-		self:resolveX()
-	end	
-	return self
-end
------------------------------------------------------------
-function e:moveTo(x,y)
-	return self:move(x-self.x,y-self.y)
-end
------------------------------------------------------------
-function e:setSize(w,h)
-	self.w = w; self.h = h
-	return self
-end
------------------------------------------------------------
-function e:unpack()
-	return self.x,self.y,self.w,self.h
-end
------------------------------------------------------------
-function e:setGrid(grid)
-	self.grid = grid
-	return self
-end
------------------------------------------------------------
-function e:setTileset(tileset)
-	self.tileset = tileset
-	return self
-end
------------------------------------------------------------
-function e:setActive(bool)
-	self.isActive = bool
-	return self
-end
------------------------------------------------------------
-function e:setBullet(bool)
-	self.isBullet = bool
-	return self
-end	
------------------------------------------------------------
-function e:isActive()
-	return self.isActive
-end
------------------------------------------------------------
-function e:isBullet()
-	return self.isBullet
-end
------------------------------------------------------------
-function e:draw(mode)
-	love.graphics.rectangle(mode,self.x,self.y,self.w,self.h)
-	return self
-end
------------------------------------------------------------
-return e
+return t
