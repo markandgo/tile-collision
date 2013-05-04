@@ -41,8 +41,8 @@ Note: +x is to the right, +y is to the bottom
 	w - width of the box
 	h - height of the box
 	
-The following table describes which the direction the box is
-is pushed to resolve a side collision.
+The following table describes which direction the box is
+pushed to resolve a side collision.
 
 	side     push
 	----     ----
