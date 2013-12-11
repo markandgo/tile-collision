@@ -1,5 +1,5 @@
 --[[
-Tile Collider 3.0
+Tile Collider 3.1
 
 Copyright (c) 2013 Minh Ngo
 
@@ -40,7 +40,7 @@ function t.new(getTile,tileWidth,tileHeight,isResolvable,heightmaps,startzero)
 		tileHeight  = tileHeight,
 		isResolvable= isResolvable,
 		heightmaps  = heightmaps or {},
-		startzero   = startzero,
+		startzero   = startzero == nil and true or startzero,
 	}
 	return setmetatable(o,t)
 end
