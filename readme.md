@@ -21,7 +21,7 @@ Create a new collision handler:
 		th - height of a tile
 		c  - tile collision callback 
 		h  - table of heightmaps for slope tiles
-		s  - true if the top left of tile (0,0) is the origin
+		s  - true if the top left of tile (0,0) is the origin [default]
 		   - false if the top left of tile (1,1) is the origin
 		
 The handler has methods for resolving collision with a 
